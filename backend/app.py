@@ -16,20 +16,34 @@ CORS(app)  # ✅ enable CORS for all routes
 
 @app.route("/get-reply", methods=["POST"])
 def get_reply():
-    data = request.json
-    emotion = data.get("emotion", "neutral")
+    try: 
+        data = request.json
+        emotion = data.get("emotion", "neutral")
 
-    prompt = f"""
-    The user looks {emotion}.
-    Write a friendly, motivational, fun, and encouraging response in 3–5 lines.
-    Avoid generic advice; keep it light, warm, and engaging.
-    """
+    
+        # Build a better structured prompt
+        prompt = f"""
+        The user looks {emotion}.
+        Write a friendly, motivational, fun, and encouraging response in 3–5 lines.
+        Avoid generic advice; keep it light, warm, and engaging.
+        """
 
-    # Call Gemini
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(prompt)
+    
 
-    return jsonify({"reply": response.text})
+        # Call Gemini
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+
+
+        # Some Gemini responses may not have .text (handle gracefully)
+        reply_text = getattr(response, "text", "Sorry, I couldn’t generate a reply right now.")
+
+        return jsonify({"reply": reply_text})
+    
+    except Exception as e:
+        # Catch API/Quota errors
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)
